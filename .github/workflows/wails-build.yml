@@ -64,6 +64,7 @@ jobs:
         run: |
                 cd wails-study
                 wails build -platform windows/amd64
+                ls build/bin
         env:
           CGO_ENABLED: 1
 
