@@ -94,11 +94,10 @@ jobs:
         with:
           name: study_${{ runner.os }}-10
           path: ${{ github.workspace }}/bundle.zip
-
-  # Windows 7 构建（自托管运行器）
-  build-windows-7:
-    #runs-on: [self-hosted, windows, windows-7]  # 自托管运行器标签需提前配置
-    runs-on: windows-2019  # GitHub 官方 Windows 7 镜像（2019 对应 Win7）
+ 
+  # Ubuntu 20.04 构建
+  build-ubuntu-20-04:
+    runs-on: ubuntu-20.04
     env:
         pwd: ${{ secrets.ZIP_PWD }}  
         opt: zip  
@@ -111,22 +110,22 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'  # 适配 Wails 的 Go 版本
+          go-version: '1.25'
           cache: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gcc make libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install Wails CLI
         run: |
-               go install github.com/wailsapp/wails/v2/cmd/wails@latest
-               wails version
+              go install github.com/wailsapp/wails/v2/cmd/wails@latest
+              wails version
 
-      # - name: Install Windows build dependencies
-      #   run: |
-      #     choco install -y gcc make
-      #     refreshenv
 # url中不加用户名时，默认是使用本repo的用户名，也可以成功clone下来  
 # 生成 token: https://github.com/settings/tokens
 # BUILD_GITHUB_TOKEN 须在本repo下settings/secrets/actions 配置 New rpository BUILD_GITHUB_TOKEN
-
       - name: Download private repo
         run: |
           echo "workspace----------------------------------------------------------------"
@@ -136,20 +135,20 @@ jobs:
 
       - name: Display structure of downloaded files
         run: ls -R
-      - name: Display cloud drive
+        
+      - name: Display wails-study
         run: |
             echo "wails-study下的文件"
             ls  ${{ github.workspace }}/wails-study
-
+            
       - name: Build Wails project
         run: |
                 cd wails-study
-                wails build -platform windows/amd64
+                wails build -platform linux/amd64
                 ls build/bin
         env:
           CGO_ENABLED: 1
-
-      
+         
       - name: Download zip(archiver) repo and make zip package
       # git clone https://${{ secrets.BUILD_GITHUB_TOKEN }}@github.com/kuaileniu/archiver.git
         run: |
@@ -173,41 +172,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: study_${{ runner.os }}-7
+          name: study_${{ runner.os }}-20.04
           path: ${{ github.workspace }}/bundle.zip
-
-  # Ubuntu 20.04 构建
-  build-ubuntu-20-04:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y gcc make libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Build Wails project
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          wails build -platform linux/amd64
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ubuntu-20.04-build
-          path: build/bin/
-
+          
   # Ubuntu 24.04 构建
   build-ubuntu-24-04:
     runs-on: ubuntu-24.04
@@ -227,47 +194,58 @@ jobs:
           sudo apt install -y gcc make libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+        run: |
+              go install github.com/wailsapp/wails/v2/cmd/wails@latest
+              wails version
 
+# url中不加用户名时，默认是使用本repo的用户名，也可以成功clone下来  
+# 生成 token: https://github.com/settings/tokens
+# BUILD_GITHUB_TOKEN 须在本repo下settings/secrets/actions 配置 New rpository BUILD_GITHUB_TOKEN
+      - name: Download private repo
+        run: |
+          echo "workspace----------------------------------------------------------------"
+          echo "${{ github.workspace }}"
+          cd ${{ github.workspace }}
+          git clone https://${{ secrets.BUILD_GITHUB_TOKEN }}@github.com/kuaileniu/wails-study.git
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        
+      - name: Display wails-study
+        run: |
+            echo "wails-study下的文件"
+            ls  ${{ github.workspace }}/wails-study
+            
       - name: Build Wails project
         run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          wails build -platform linux/amd64
+                cd wails-study
+                wails build -platform linux/amd64
+                ls build/bin
+        env:
+          CGO_ENABLED: 1
+         
+      - name: Download zip(archiver) repo and make zip package
+      # git clone https://${{ secrets.BUILD_GITHUB_TOKEN }}@github.com/kuaileniu/archiver.git
+        run: |
+          cd ${{ github.workspace }} 
+
+          echo "Download当前位置"
+          pwd
+          
+          git clone --branch v1.0.0 --single-branch https://${{ secrets.BUILD_GITHUB_TOKEN }}@github.com/kuaileniu/archiver.git
+          cd ${{ github.workspace }}/archiver
+          
+          echo "当前位置,期望是    xxx/archiver"
+          pwd
+          echo "archiver目录下的文件"
+          ls
+          go env -w GOPRIVATE="github.com/kuaileniu"
+          git config --global url."https://kuaileniu:${{ secrets.BUILD_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+          go mod tidy
+          go run main.go    
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ubuntu-24.04-build
-          path: build/bin/
-
-  # SUSE 15 构建（自托管/容器化）
-  build-suse-15:
-    runs-on: [self-hosted, linux, suse-15]  # 或使用容器：container: opensuse/leap:15.5
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
-
-      - name: Install SUSE 15 dependencies
-        run: |
-          sudo zypper refresh
-          sudo zypper install -y gcc make gtk3-devel webkit2gtk3-devel libappindicator3-devel librsvg-devel patchelf go
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Build Wails project
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          wails build -platform linux/amd64
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: suse-15-build
-          path: build/bin/
+          name: study_${{ runner.os }}-24.04
+          path: ${{ github.workspace }}/bundle.zip
