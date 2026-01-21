@@ -1,5 +1,5 @@
-# wails-study-github-action
-wails-study项目的build项目
+# wails2-study-github-action
+wails2-study项目的build项目
 
 
 ##
