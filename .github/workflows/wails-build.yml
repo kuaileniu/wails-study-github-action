@@ -97,7 +97,8 @@ jobs:
 
   # Windows 7 构建（自托管运行器）
   build-windows-7:
-    runs-on: [self-hosted, windows, windows-7]  # 自托管运行器标签需提前配置
+    #runs-on: [self-hosted, windows, windows-7]  # 自托管运行器标签需提前配置
+    runs-on: windows-2019  # GitHub 官方 Windows 7 镜像（2019 对应 Win7）
     env:
         pwd: ${{ secrets.ZIP_PWD }}  
         opt: zip  
